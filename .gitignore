@@ -15,3 +15,4 @@ src-tauri/gen/android/local.properties
 .vscode/*
 !.vscode/extensions.json
 .idea
+
