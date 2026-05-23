@@ -60,8 +60,12 @@ Desktop builds use a no-op `location::start/stop`. To feed fake GPS samples
 during development, call `dev_push_point` from the browser console:
 
 ```js
-await window.__TAURI__.core.invoke("dev_push_point",
-  { lat: 48.8566, lng: 2.3522, altitudeM: 35, accuracyM: 5 });
+await window.__TAURI__.core.invoke("dev_push_point", {
+  lat: 48.8566,
+  lng: 2.3522,
+  altitudeM: 35,
+  accuracyM: 5,
+});
 ```
 
 ### Android — one-time setup
@@ -104,8 +108,8 @@ await window.__TAURI__.core.invoke("dev_push_point",
 
 ### Putting it on your phone
 
-1. On the phone: Settings → About phone → tap *Build number* 7× to unlock
-   Developer Options → enable *USB debugging*.
+1. On the phone: Settings → About phone → tap _Build number_ 7× to unlock
+   Developer Options → enable _USB debugging_.
 2. Plug it in, accept the RSA prompt.
 3. `just install` — builds the APK and `adb install`s it.
 4. First launch: grant location ("Allow all the time" when prompted on the
@@ -116,25 +120,3 @@ To iterate with live UI reload:
 ```bash
 just android-dev
 ```
-
-## Verification checklist
-
-After the first build lands on a real phone:
-
-- [ ] Start a run, walk a known ~1 km loop with the screen off; recorded
-      distance is within ~5 %.
-- [ ] Pause for 60 s mid-run; moving time and total time differ by ~60 s and
-      distance does not grow while paused.
-- [ ] Lock the phone for 5 min mid-run; the run keeps recording (foreground
-      service is alive) and the notification shows "Recording your run".
-- [ ] Force-quit from Recents; reopen — the active session is still in the DB
-      (via `current_state` returning non-idle on Home).
-- [ ] History view: each completed run appears under Week / Month / Year and
-      the aggregate header sums correctly.
-
-## Status
-
-- ✅ Rust core (db, metrics, session, commands) — tested
-- ✅ React UI (Home, Track, Summary, History) — typechecks & builds
-- ✅ Kotlin glue authored in `android/` (merge after `tauri android init`)
-- ⏳ End-to-end on real hardware — requires installing Android SDK + NDK
