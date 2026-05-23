@@ -1,0 +1,85 @@
+import { invoke } from "@tauri-apps/api/core";
+import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+
+export type SessionState = "idle" | "running" | "paused";
+
+export interface LiveMetrics {
+  session_id: number;
+  state: SessionState;
+  started_at_ms: number;
+  now_ms: number;
+  total_distance_m: number;
+  moving_duration_ms: number;
+  avg_pace_s_per_km: number;
+}
+
+export interface SessionRow {
+  id: number;
+  started_at_ms: number;
+  ended_at_ms: number | null;
+  total_distance_m: number | null;
+  moving_duration_ms: number | null;
+  total_duration_ms: number | null;
+  avg_pace_s_per_km: number | null;
+  elevation_gain_m: number | null;
+  elevation_loss_m: number | null;
+}
+
+export interface TrackPoint {
+  timestamp_ms: number;
+  lat: number;
+  lng: number;
+  altitude_m: number | null;
+  accuracy_m: number | null;
+  paused: boolean;
+}
+
+export interface Split {
+  km_index: number;
+  duration_ms: number;
+  elevation_gain_m: number;
+}
+
+export interface PauseInterval {
+  paused_at_ms: number;
+  resumed_at_ms: number | null;
+}
+
+export interface SessionDetail {
+  session: SessionRow;
+  points: TrackPoint[];
+  splits: Split[];
+  pauses: PauseInterval[];
+}
+
+export type Range = "week" | "month" | "year";
+
+export interface HistoryBucket {
+  from_ms: number;
+  to_ms: number;
+  label: string;
+  sessions: SessionRow[];
+  total_distance_m: number;
+  total_moving_duration_ms: number;
+  session_count: number;
+}
+
+export const api = {
+  currentState: () => invoke<SessionState>("current_state"),
+  liveMetrics: () => invoke<LiveMetrics | null>("live_metrics"),
+  startSession: () => invoke<number>("start_session"),
+  pauseSession: () => invoke<void>("pause_session"),
+  resumeSession: () => invoke<void>("resume_session"),
+  stopSession: () => invoke<SessionDetail>("stop_session"),
+  listRecent: (limit: number) => invoke<SessionRow[]>("list_recent", { limit }),
+  listRange: (range: Range, anchorMs: number) =>
+    invoke<HistoryBucket>("list_range", { range, anchorMs }),
+  getSession: (id: number) => invoke<SessionDetail | null>("get_session", { id }),
+  deleteSession: (id: number) => invoke<void>("delete_session", { id }),
+  devPushPoint: (lat: number, lng: number, altitude_m?: number, accuracy_m?: number) =>
+    invoke<void>("dev_push_point", { lat, lng, altitudeM: altitude_m, accuracyM: accuracy_m }),
+};
+
+export function onMetrics(handler: (m: LiveMetrics) => void): Promise<UnlistenFn> {
+  return listen<LiveMetrics>("metrics", (event) => handler(event.payload));
+}

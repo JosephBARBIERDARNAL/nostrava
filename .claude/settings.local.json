@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:v2.tauri.app)",
+      "WebFetch(domain:dioxuslabs.com)",
+      "WebFetch(domain:slint.dev)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:releases.slint.dev)"
+    ]
+  }
+}
