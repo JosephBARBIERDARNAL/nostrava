@@ -67,6 +67,7 @@ export interface HistoryBucket {
 export const api = {
   currentState: () => invoke<SessionState>("current_state"),
   liveMetrics: () => invoke<LiveMetrics | null>("live_metrics"),
+  livePoints: () => invoke<TrackPoint[] | null>("live_points"),
   startSession: () => invoke<number>("start_session"),
   pauseSession: () => invoke<void>("pause_session"),
   resumeSession: () => invoke<void>("resume_session"),

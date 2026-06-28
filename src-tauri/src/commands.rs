@@ -38,6 +38,11 @@ pub fn live_metrics(store: State<SessionStore>) -> Option<LiveMetrics> {
 }
 
 #[tauri::command]
+pub fn live_points(store: State<SessionStore>) -> Option<Vec<TrackPoint>> {
+    store.live_points()
+}
+
+#[tauri::command]
 pub fn start_session(
     app: AppHandle,
     db: State<Db>,
@@ -65,13 +70,18 @@ pub fn start_session(
 #[tauri::command]
 pub fn pause_session(db: State<Db>, store: State<SessionStore>) -> Result<(), CmdError> {
     let mut guard = store.inner.lock();
-    let Some(s) = guard.as_mut() else { return Err(CmdError::State("no active session")) };
+    let Some(s) = guard.as_mut() else {
+        return Err(CmdError::State("no active session"));
+    };
     if s.state != SessionState::Running {
         return Err(CmdError::State("session is not running"));
     }
     let ts = now_ms();
     s.state = SessionState::Paused;
-    s.pauses.push(crate::metrics::PauseInterval { paused_at_ms: ts, resumed_at_ms: None });
+    s.pauses.push(crate::metrics::PauseInterval {
+        paused_at_ms: ts,
+        resumed_at_ms: None,
+    });
     let id = s.id;
     drop(guard);
     db.open_pause(id, ts)?;
@@ -81,7 +91,9 @@ pub fn pause_session(db: State<Db>, store: State<SessionStore>) -> Result<(), Cm
 #[tauri::command]
 pub fn resume_session(db: State<Db>, store: State<SessionStore>) -> Result<(), CmdError> {
     let mut guard = store.inner.lock();
-    let Some(s) = guard.as_mut() else { return Err(CmdError::State("no active session")) };
+    let Some(s) = guard.as_mut() else {
+        return Err(CmdError::State("no active session"));
+    };
     if s.state != SessionState::Paused {
         return Err(CmdError::State("session is not paused"));
     }
@@ -129,7 +141,9 @@ pub fn stop_session(
 
     location::stop(&app);
 
-    let detail = db.get_session_detail(id)?.ok_or(CmdError::State("session vanished"))?;
+    let detail = db
+        .get_session_detail(id)?
+        .ok_or(CmdError::State("session vanished"))?;
     Ok(detail)
 }
 
@@ -158,11 +172,7 @@ pub struct HistoryBucket {
 }
 
 #[tauri::command]
-pub fn list_range(
-    db: State<Db>,
-    range: Range,
-    anchor_ms: i64,
-) -> Result<HistoryBucket, CmdError> {
+pub fn list_range(db: State<Db>, range: Range, anchor_ms: i64) -> Result<HistoryBucket, CmdError> {
     let anchor = Local
         .timestamp_millis_opt(anchor_ms)
         .single()
@@ -171,7 +181,8 @@ pub fn list_range(
         Range::Week => {
             let weekday = anchor.weekday().num_days_from_monday() as i64;
             let monday = (anchor.date_naive() - chrono::Duration::days(weekday))
-                .and_hms_opt(0, 0, 0).unwrap();
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
             let from = Local.from_local_datetime(&monday).single().unwrap();
             let to = from + chrono::Duration::days(7);
             let label = format!("Week of {}", from.format("%b %d"));
@@ -179,7 +190,9 @@ pub fn list_range(
         }
         Range::Month => {
             let first = chrono::NaiveDate::from_ymd_opt(anchor.year(), anchor.month(), 1)
-                .unwrap().and_hms_opt(0, 0, 0).unwrap();
+                .unwrap()
+                .and_hms_opt(0, 0, 0)
+                .unwrap();
             let from = Local.from_local_datetime(&first).single().unwrap();
             let next_month = if anchor.month() == 12 {
                 chrono::NaiveDate::from_ymd_opt(anchor.year() + 1, 1, 1).unwrap()
@@ -188,19 +201,30 @@ pub fn list_range(
             };
             let to = Local
                 .from_local_datetime(&next_month.and_hms_opt(0, 0, 0).unwrap())
-                .single().unwrap();
+                .single()
+                .unwrap();
             let label = from.format("%B %Y").to_string();
             (from, to, label)
         }
         Range::Year => {
             let from = Local
-                .from_local_datetime(&chrono::NaiveDate::from_ymd_opt(anchor.year(), 1, 1).unwrap()
-                    .and_hms_opt(0, 0, 0).unwrap())
-                .single().unwrap();
+                .from_local_datetime(
+                    &chrono::NaiveDate::from_ymd_opt(anchor.year(), 1, 1)
+                        .unwrap()
+                        .and_hms_opt(0, 0, 0)
+                        .unwrap(),
+                )
+                .single()
+                .unwrap();
             let to = Local
-                .from_local_datetime(&chrono::NaiveDate::from_ymd_opt(anchor.year() + 1, 1, 1).unwrap()
-                    .and_hms_opt(0, 0, 0).unwrap())
-                .single().unwrap();
+                .from_local_datetime(
+                    &chrono::NaiveDate::from_ymd_opt(anchor.year() + 1, 1, 1)
+                        .unwrap()
+                        .and_hms_opt(0, 0, 0)
+                        .unwrap(),
+                )
+                .single()
+                .unwrap();
             let label = anchor.year().to_string();
             (from, to, label)
         }

@@ -74,7 +74,11 @@ fn point_is_valid(p: &TrackPoint) -> bool {
 pub fn pauses_total_ms(pauses: &[PauseInterval], now_ms: i64) -> i64 {
     pauses
         .iter()
-        .map(|p| p.resumed_at_ms.unwrap_or(now_ms).saturating_sub(p.paused_at_ms))
+        .map(|p| {
+            p.resumed_at_ms
+                .unwrap_or(now_ms)
+                .saturating_sub(p.paused_at_ms)
+        })
         .sum()
 }
 
@@ -91,7 +95,16 @@ pub fn cumulative_distance_m(points: &[TrackPoint]) -> Vec<f64> {
             continue;
         }
         if let Some(prev) = last_valid {
-            let d = haversine_m(Coord { lat: prev.lat, lng: prev.lng }, Coord { lat: p.lat, lng: p.lng });
+            let d = haversine_m(
+                Coord {
+                    lat: prev.lat,
+                    lng: prev.lng,
+                },
+                Coord {
+                    lat: p.lat,
+                    lng: p.lng,
+                },
+            );
             let dt_s = (p.timestamp_ms - prev.timestamp_ms).max(1) as f64 / 1000.0;
             let speed = d / dt_s;
             if speed <= MAX_SPEED_MPS {
@@ -225,25 +238,48 @@ mod tests {
     use super::*;
 
     fn p(ts_ms: i64, lat: f64, lng: f64) -> TrackPoint {
-        TrackPoint { timestamp_ms: ts_ms, lat, lng, altitude_m: None, accuracy_m: Some(5.0), paused: false }
+        TrackPoint {
+            timestamp_ms: ts_ms,
+            lat,
+            lng,
+            altitude_m: None,
+            accuracy_m: Some(5.0),
+            paused: false,
+        }
     }
 
     fn pa(ts_ms: i64, lat: f64, lng: f64, alt: f64) -> TrackPoint {
-        TrackPoint { timestamp_ms: ts_ms, lat, lng, altitude_m: Some(alt), accuracy_m: Some(5.0), paused: false }
+        TrackPoint {
+            timestamp_ms: ts_ms,
+            lat,
+            lng,
+            altitude_m: Some(alt),
+            accuracy_m: Some(5.0),
+            paused: false,
+        }
     }
 
     #[test]
     fn haversine_known_distance() {
         // Paris ↔ London ≈ 343 km.
-        let paris = Coord { lat: 48.8566, lng: 2.3522 };
-        let london = Coord { lat: 51.5074, lng: -0.1278 };
+        let paris = Coord {
+            lat: 48.8566,
+            lng: 2.3522,
+        };
+        let london = Coord {
+            lat: 51.5074,
+            lng: -0.1278,
+        };
         let d = haversine_m(paris, london);
         assert!((d - 343_500.0).abs() < 2_000.0, "got {d}");
     }
 
     #[test]
     fn haversine_zero() {
-        let c = Coord { lat: 45.0, lng: 6.0 };
+        let c = Coord {
+            lat: 45.0,
+            lng: 6.0,
+        };
         assert!(haversine_m(c, c) < 1e-6);
     }
 
@@ -275,8 +311,14 @@ mod tests {
     #[test]
     fn pauses_summed_correctly() {
         let pauses = vec![
-            PauseInterval { paused_at_ms: 10_000, resumed_at_ms: Some(70_000) },
-            PauseInterval { paused_at_ms: 100_000, resumed_at_ms: Some(130_000) },
+            PauseInterval {
+                paused_at_ms: 10_000,
+                resumed_at_ms: Some(70_000),
+            },
+            PauseInterval {
+                paused_at_ms: 100_000,
+                resumed_at_ms: Some(130_000),
+            },
         ];
         assert_eq!(pauses_total_ms(&pauses, 200_000), 90_000);
     }
@@ -286,11 +328,14 @@ mod tests {
         // 600 m over 5 min wall-clock, with a 1 min pause in the middle.
         let pts = vec![
             p(0, 48.0, 6.0),
-            p(120_000, 48.003, 6.0),   // 333 m at minute 2
-            p(180_000, 48.003, 6.0),   // paused — no distance change anyway
-            p(300_000, 48.006, 6.0),   // 666 m total
+            p(120_000, 48.003, 6.0), // 333 m at minute 2
+            p(180_000, 48.003, 6.0), // paused — no distance change anyway
+            p(300_000, 48.006, 6.0), // 666 m total
         ];
-        let pauses = vec![PauseInterval { paused_at_ms: 120_000, resumed_at_ms: Some(180_000) }];
+        let pauses = vec![PauseInterval {
+            paused_at_ms: 120_000,
+            resumed_at_ms: Some(180_000),
+        }];
         let totals = finalize(&pts, &pauses, 0, 300_000);
         assert_eq!(totals.total_duration_ms, 300_000);
         assert_eq!(totals.moving_duration_ms, 240_000); // 5 min - 1 min pause
@@ -311,7 +356,11 @@ mod tests {
         assert_eq!(totals.splits.len(), 2);
         // Each km should be ~10 minutes give or take
         for s in &totals.splits {
-            assert!((s.duration_ms - 600_000).abs() < 30_000, "split {} ms off", s.duration_ms);
+            assert!(
+                (s.duration_ms - 600_000).abs() < 30_000,
+                "split {} ms off",
+                s.duration_ms
+            );
         }
     }
 
@@ -319,7 +368,14 @@ mod tests {
     fn elevation_filters_noise() {
         // Tiny oscillations should not count.
         let pts: Vec<TrackPoint> = (0..20)
-            .map(|i| pa(i * 1000, 48.0 + i as f64 * 0.0001, 6.0, 100.0 + ((i % 2) as f64) * 0.3))
+            .map(|i| {
+                pa(
+                    i * 1000,
+                    48.0 + i as f64 * 0.0001,
+                    6.0,
+                    100.0 + ((i % 2) as f64) * 0.3,
+                )
+            })
             .collect();
         let (gain, loss) = elevation_change(&pts);
         assert!(gain < 1.0 && loss < 1.0, "got gain={gain} loss={loss}");
@@ -329,7 +385,14 @@ mod tests {
     fn elevation_real_climb_counted() {
         // Steady 100 m gain over 20 samples (5 m/sample) — comfortably above the 1 m noise floor.
         let pts: Vec<TrackPoint> = (0..20)
-            .map(|i| pa(i * 1000, 48.0 + i as f64 * 0.0001, 6.0, 100.0 + (i as f64) * 5.0))
+            .map(|i| {
+                pa(
+                    i * 1000,
+                    48.0 + i as f64 * 0.0001,
+                    6.0,
+                    100.0 + (i as f64) * 5.0,
+                )
+            })
             .collect();
         let (gain, loss) = elevation_change(&pts);
         assert!(gain > 60.0, "expected real gain, got {gain}");

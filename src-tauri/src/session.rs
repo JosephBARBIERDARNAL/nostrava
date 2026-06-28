@@ -84,6 +84,12 @@ impl SessionStore {
         })
     }
 
+    /// Return the active track points for the frontend live map.
+    pub fn live_points(&self) -> Option<Vec<TrackPoint>> {
+        let guard = self.inner.lock();
+        guard.as_ref().map(|s| s.points.clone())
+    }
+
     /// Append a location update from whatever source (JNI or simulator).
     pub fn push_point(&self, db: &Db, mut point: TrackPoint) {
         let mut guard = self.inner.lock();

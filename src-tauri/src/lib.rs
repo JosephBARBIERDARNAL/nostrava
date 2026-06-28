@@ -48,6 +48,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::current_state,
             commands::live_metrics,
+            commands::live_points,
             commands::start_session,
             commands::pause_session,
             commands::resume_session,

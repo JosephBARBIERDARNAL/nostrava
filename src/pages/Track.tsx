@@ -1,20 +1,27 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Pause, Play, Square } from "lucide-react";
-import { api, onMetrics, type LiveMetrics } from "@/lib/api";
+import { api, onMetrics, type LiveMetrics, type TrackPoint } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { PolylinePreview } from "@/components/PolylinePreview";
 import { formatDistance, formatDuration, formatPace } from "@/lib/format";
 
 export function Track() {
   const nav = useNavigate();
   const [metrics, setMetrics] = useState<LiveMetrics | null>(null);
+  const [points, setPoints] = useState<TrackPoint[]>([]);
   const [busy, setBusy] = useState(false);
   const unlistenRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     let alive = true;
     api.liveMetrics().then((m) => alive && setMetrics(m));
-    onMetrics((m) => alive && setMetrics(m)).then((un) => {
+    api.livePoints().then((pts) => alive && setPoints(pts ?? []));
+    onMetrics((m) => {
+      if (!alive) return;
+      setMetrics(m);
+      api.livePoints().then((pts) => alive && setPoints(pts ?? []));
+    }).then((un) => {
       unlistenRef.current = un;
     });
     return () => {
@@ -37,6 +44,7 @@ export function Track() {
       await api.pauseSession();
       const m = await api.liveMetrics();
       setMetrics(m);
+      setPoints((await api.livePoints()) ?? []);
     } finally {
       setBusy(false);
     }
@@ -49,6 +57,7 @@ export function Track() {
       await api.resumeSession();
       const m = await api.liveMetrics();
       setMetrics(m);
+      setPoints((await api.livePoints()) ?? []);
     } finally {
       setBusy(false);
     }
@@ -76,7 +85,7 @@ export function Track() {
         </p>
       </header>
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-12">
+      <div className="flex-1 flex flex-col items-center justify-center gap-8">
         <div
           className={`relative w-64 h-64 rounded-full grid place-items-center transition-colors ${
             isPaused ? "bg-muted/30" : "bg-accent/15"
@@ -95,6 +104,10 @@ export function Track() {
         <div className="grid grid-cols-2 gap-4 w-full">
           <Stat label="Distance" value={formatDistance(metrics?.total_distance_m)} />
           <Stat label="Pace" value={formatPace(metrics?.avg_pace_s_per_km)} />
+        </div>
+
+        <div className="w-full rounded-xl border border-border bg-card p-2">
+          <PolylinePreview points={points} height={180} />
         </div>
       </div>
 
