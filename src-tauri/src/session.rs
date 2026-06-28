@@ -106,17 +106,4 @@ impl SessionStore {
             let _ = db.append_points(s.id, &new_pts);
         }
     }
-
-    /// Persist any in-memory points that haven't yet been written to SQLite.
-    /// Called when the Kotlin foreground service stops, so a kill mid-run still
-    /// leaves the recorded track on disk.
-    pub fn flush_remaining(&self, db: &Db) {
-        let mut guard = self.inner.lock();
-        let Some(s) = guard.as_mut() else { return };
-        if s.unflushed_from < s.points.len() {
-            let tail: Vec<TrackPoint> = s.points[s.unflushed_from..].to_vec();
-            s.unflushed_from = s.points.len();
-            let _ = db.append_points(s.id, &tail);
-        }
-    }
 }
