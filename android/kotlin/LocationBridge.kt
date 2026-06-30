@@ -45,6 +45,12 @@ object LocationBridge {
         ctx.stopService(Intent(ctx, LocationService::class.java))
     }
 
+    @JvmStatic
+    fun installationUpdatedAtMs(): Long {
+        val ctx = appContext ?: return 0L
+        return ctx.packageManager.getPackageInfo(ctx.packageName, 0).lastUpdateTime
+    }
+
     // ─── JNI bindings (implemented in Rust) ──────────────────────────────
     @JvmStatic external fun nativeInit()
     @JvmStatic external fun onLocation(

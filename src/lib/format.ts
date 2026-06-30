@@ -34,3 +34,17 @@ export function formatDateTime(ms: number): string {
     hour: "2-digit", minute: "2-digit",
   });
 }
+
+export function formatInstallDate(ms: number): string {
+  const d = new Date(ms);
+  const date = d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+  });
+  const time = d.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  return `${date}, ${time}`;
+}

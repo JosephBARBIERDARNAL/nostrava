@@ -4,7 +4,12 @@ import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
 import { api, type HistoryBucket, type Range } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { formatDate, formatDistance, formatDuration, formatPace } from "@/lib/format";
+import {
+  formatDate,
+  formatDistance,
+  formatDuration,
+  formatPace,
+} from "@/lib/format";
 
 export function History() {
   const [range, setRange] = useState<Range>("week");
@@ -34,14 +39,21 @@ export function History() {
   return (
     <>
       <header className="flex items-center justify-between mb-5">
-        <Link to="/" className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground">
+        <Link
+          to="/"
+          className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
+        >
           <ArrowLeft className="h-4 w-4 mr-1" /> Home
         </Link>
         <h1 className="font-display text-lg">History</h1>
         <span className="w-12" />
       </header>
 
-      <Tabs value={range} onValueChange={(v) => setRange(v as Range)} className="mb-5">
+      <Tabs
+        value={range}
+        onValueChange={(v) => setRange(v as Range)}
+        className="mb-5"
+      >
         <TabsList className="w-full grid grid-cols-3">
           <TabsTrigger value="week">Week</TabsTrigger>
           <TabsTrigger value="month">Month</TabsTrigger>
@@ -69,8 +81,14 @@ export function History() {
 
       {bucket && (
         <div className="grid grid-cols-3 gap-2 mb-5">
-          <Stat label="Distance" value={formatDistance(bucket.total_distance_m)} />
-          <Stat label="Time" value={formatDuration(bucket.total_moving_duration_ms)} />
+          <Stat
+            label="Distance"
+            value={formatDistance(bucket.total_distance_m)}
+          />
+          <Stat
+            label="Time"
+            value={formatDuration(bucket.total_moving_duration_ms)}
+          />
           <Stat label="Runs" value={bucket.session_count.toString()} />
         </div>
       )}
@@ -88,7 +106,9 @@ export function History() {
                 className="block rounded-xl border border-border bg-card px-4 py-3 hover:border-muted transition-colors"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="font-medium">{formatDate(s.started_at_ms)}</span>
+                  <span className="font-medium">
+                    {formatDate(s.started_at_ms)}
+                  </span>
                   <span className="font-display text-lg tabular-nums">
                     {formatDistance(s.total_distance_m)}
                   </span>
@@ -109,7 +129,9 @@ export function History() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-3 text-center">
-      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 font-display text-base tabular-nums">{value}</div>
     </div>
   );

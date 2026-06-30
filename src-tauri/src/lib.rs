@@ -47,6 +47,7 @@ pub fn run() {
         })
         .invoke_handler(tauri::generate_handler![
             commands::current_state,
+            commands::installation_updated_at_ms,
             commands::live_metrics,
             commands::live_points,
             commands::start_session,

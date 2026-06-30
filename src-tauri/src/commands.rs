@@ -43,6 +43,22 @@ pub fn live_points(store: State<SessionStore>) -> Option<Vec<TrackPoint>> {
 }
 
 #[tauri::command]
+pub fn installation_updated_at_ms() -> Option<i64> {
+    #[cfg(target_os = "android")]
+    {
+        crate::jni_bridge::installation_updated_at_ms()
+            .map_err(|e| log::warn!("installation timestamp unavailable: {e}"))
+            .ok()
+            .flatten()
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        None
+    }
+}
+
+#[tauri::command]
 pub fn start_session(
     app: AppHandle,
     db: State<Db>,

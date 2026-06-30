@@ -102,18 +102,31 @@ export function Track() {
         </div>
 
         <div className="grid grid-cols-2 gap-4 w-full">
-          <Stat label="Distance" value={formatDistance(metrics?.total_distance_m)} />
+          <Stat
+            label="Distance"
+            value={formatDistance(metrics?.total_distance_m)}
+          />
           <Stat label="Pace" value={formatPace(metrics?.avg_pace_s_per_km)} />
         </div>
 
         <div className="w-full rounded-xl border border-border bg-card p-2">
-          <RouteMap points={points} height={180} live emptyLabel="Waiting for GPS" />
+          <RouteMap
+            points={points}
+            height={180}
+            live
+            emptyLabel="Waiting for GPS"
+          />
         </div>
       </div>
 
       <div className="mt-10 grid grid-cols-2 gap-3">
         {isPaused ? (
-          <Button onClick={onResume} disabled={busy} size="lg" variant="primary">
+          <Button
+            onClick={onResume}
+            disabled={busy}
+            size="lg"
+            variant="primary"
+          >
             <Play className="h-5 w-5" /> Resume
           </Button>
         ) : (
@@ -132,7 +145,9 @@ export function Track() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-4 text-center">
-      <div className="text-xs uppercase tracking-widest text-muted-foreground">{label}</div>
+      <div className="text-xs uppercase tracking-widest text-muted-foreground">
+        {label}
+      </div>
       <div className="mt-1 font-display text-2xl tabular-nums">{value}</div>
     </div>
   );

@@ -5,6 +5,7 @@ import { api, type SessionRow } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import {
+  formatInstallDate,
   formatDate,
   formatDistance,
   formatDuration,
@@ -14,9 +15,16 @@ import {
 export function Home() {
   const nav = useNavigate();
   const [recent, setRecent] = useState<SessionRow[]>([]);
+  const [installationUpdatedAtMs, setInstallationUpdatedAtMs] = useState<
+    number | null
+  >(null);
   const [starting, setStarting] = useState(false);
 
   useEffect(() => {
+    api
+      .installationUpdatedAtMs()
+      .then(setInstallationUpdatedAtMs)
+      .catch(console.error);
     api.listRecent(5).then(setRecent).catch(console.error);
     // Resume into active session if one exists
     api.currentState().then((s) => {
@@ -40,6 +48,11 @@ export function Home() {
     <>
       <header className="mb-8">
         <h1 className="font-display text-4xl tracking-tight">Nostrava</h1>
+        {installationUpdatedAtMs && (
+          <p className="mt-1 text-sm text-muted-foreground">
+            Version {formatInstallDate(installationUpdatedAtMs)}
+          </p>
+        )}
       </header>
 
       <Button
