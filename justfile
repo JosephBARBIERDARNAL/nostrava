@@ -6,6 +6,7 @@ default:
 
 # Desktop dev — opens a 420×820 window with hot-reloading UI.
 # Use this for fast iteration on screens; GPS is faked via the dev-push-point
+
 # command (or you can just script it in the browser console).
 dev:
     npm run tauri:dev
@@ -19,6 +20,7 @@ test:
     cd src-tauri && cargo test --lib
 
 # One-time: scaffold the gen/android/ Gradle project.
+
 # Requires ANDROID_HOME + NDK_HOME exported (and the SDK + NDK installed).
 android-init:
     npm run tauri -- android init
@@ -50,6 +52,7 @@ install:
      "$ADB" install -r "$APK"
 
 # Generate a self-signed release keystore at ~/.nostrava/release.keystore.
+
 # Run once, then point tauri.conf.json's `android.signingConfig` at it.
 keystore:
     @mkdir -p ~/.nostrava

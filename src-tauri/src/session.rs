@@ -106,4 +106,18 @@ impl SessionStore {
             let _ = db.append_points(s.id, &new_pts);
         }
     }
+
+    /// Persist any active-session points that have not yet been flushed.
+    pub fn flush_remaining(&self, db: &Db) {
+        let mut guard = self.inner.lock();
+        let Some(s) = guard.as_mut() else { return };
+        if s.unflushed_from >= s.points.len() {
+            return;
+        }
+
+        let new_pts: Vec<TrackPoint> = s.points[s.unflushed_from..].to_vec();
+        if db.append_points(s.id, &new_pts).is_ok() {
+            s.unflushed_from = s.points.len();
+        }
+    }
 }

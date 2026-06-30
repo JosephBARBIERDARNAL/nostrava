@@ -5,7 +5,7 @@ import { api, type SessionDetail } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ElevationChart } from "@/components/ElevationChart";
-import { PolylinePreview } from "@/components/PolylinePreview";
+import { RouteMap } from "@/components/RouteMap";
 import { SplitsTable } from "@/components/SplitsTable";
 import {
   formatDateTime, formatDistance, formatDuration, formatPace,
@@ -56,7 +56,7 @@ export function Summary() {
 
       <Card className="mb-5">
         <CardContent className="p-2">
-          <PolylinePreview points={detail.points} height={220} />
+          <RouteMap points={detail.points} height={220} />
         </CardContent>
       </Card>
 

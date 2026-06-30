@@ -28,8 +28,6 @@ Rust core           (commands, session state, SQLite, metrics)
 Kotlin glue         (Foreground Service + FusedLocationProvider)
 ```
 
-The full design rationale is in
-`~/.claude/plans/i-want-to-build-cosmic-book.md`.
 
 ## Repo layout
 

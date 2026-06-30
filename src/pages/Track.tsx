@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Pause, Play, Square } from "lucide-react";
 import { api, onMetrics, type LiveMetrics, type TrackPoint } from "@/lib/api";
 import { Button } from "@/components/ui/button";
-import { PolylinePreview } from "@/components/PolylinePreview";
+import { RouteMap } from "@/components/RouteMap";
 import { formatDistance, formatDuration, formatPace } from "@/lib/format";
 
 export function Track() {
@@ -107,7 +107,7 @@ export function Track() {
         </div>
 
         <div className="w-full rounded-xl border border-border bg-card p-2">
-          <PolylinePreview points={points} height={180} />
+          <RouteMap points={points} height={180} live emptyLabel="Waiting for GPS" />
         </div>
       </div>
 
