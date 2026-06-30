@@ -4,7 +4,12 @@ import { ChevronRight, Play } from "lucide-react";
 import { api, type SessionRow } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { formatDate, formatDistance, formatDuration, formatPace } from "@/lib/format";
+import {
+  formatDate,
+  formatDistance,
+  formatDuration,
+  formatPace,
+} from "@/lib/format";
 
 export function Home() {
   const nav = useNavigate();
@@ -35,16 +40,23 @@ export function Home() {
     <>
       <header className="mb-8">
         <h1 className="font-display text-4xl tracking-tight">Nostrava</h1>
-        <p className="text-sm text-muted-foreground">Run quiet. No cloud, no clutter.</p>
       </header>
 
-      <Button onClick={onStart} disabled={starting} size="xl" className="w-full mb-8 font-display text-xl">
+      <Button
+        onClick={onStart}
+        disabled={starting}
+        size="xl"
+        className="w-full mb-8 font-display text-xl"
+      >
         <Play className="h-5 w-5" /> Start a run
       </Button>
 
       <div className="flex items-baseline justify-between mb-3">
         <h2 className="font-display text-lg">Recent</h2>
-        <Link to="/history" className="text-sm text-brand hover:underline inline-flex items-center gap-1">
+        <Link
+          to="/history"
+          className="text-sm text-brand hover:underline inline-flex items-center gap-1"
+        >
           History <ChevronRight className="h-4 w-4" />
         </Link>
       </div>
@@ -62,7 +74,9 @@ export function Home() {
                 className="block rounded-xl border border-border bg-card px-4 py-3 hover:border-muted transition-colors"
               >
                 <div className="flex items-baseline justify-between">
-                  <span className="font-medium">{formatDate(s.started_at_ms)}</span>
+                  <span className="font-medium">
+                    {formatDate(s.started_at_ms)}
+                  </span>
                   <span className="font-display text-lg tabular-nums">
                     {formatDistance(s.total_distance_m)}
                   </span>
