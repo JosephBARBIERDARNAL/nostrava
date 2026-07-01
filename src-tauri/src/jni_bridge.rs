@@ -51,6 +51,17 @@ pub fn installation_updated_at_ms() -> Result<Option<i64>, String> {
     Ok((ts > 0).then_some(ts))
 }
 
+pub fn installation_installed_at_ms() -> Result<Option<i64>, String> {
+    let jvm = JVM.get().ok_or("JVM not yet cached")?;
+    let mut env = jvm.attach_current_thread().map_err(|e| e.to_string())?;
+    let ts = env
+        .call_static_method(BRIDGE_CLASS, "installationInstalledAtMs", "()J", &[])
+        .map_err(|e| e.to_string())?
+        .j()
+        .map_err(|e| e.to_string())?;
+    Ok((ts > 0).then_some(ts))
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // JNI entry points — these are called by Kotlin's LocationBridge.
 // Their fully qualified names must match the Kotlin package + class + method.

@@ -64,6 +64,22 @@ pub fn installation_updated_at_ms() -> Option<i64> {
 }
 
 #[tauri::command]
+pub fn installation_installed_at_ms() -> Option<i64> {
+    #[cfg(target_os = "android")]
+    {
+        crate::jni_bridge::installation_installed_at_ms()
+            .map_err(|e| log::warn!("installation timestamp unavailable: {e}"))
+            .ok()
+            .flatten()
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        None
+    }
+}
+
+#[tauri::command]
 pub fn start_session(
     app: AppHandle,
     db: State<Db>,
@@ -203,11 +219,7 @@ pub struct HistoryBucket {
 fn range_bounds(
     range: Range,
     anchor_ms: i64,
-) -> (
-    chrono::DateTime<Local>,
-    chrono::DateTime<Local>,
-    String,
-) {
+) -> (chrono::DateTime<Local>, chrono::DateTime<Local>, String) {
     let anchor = Local
         .timestamp_millis_opt(anchor_ms)
         .single()
@@ -330,8 +342,7 @@ pub fn list_gym_range(
     anchor_ms: i64,
 ) -> Result<GymHistoryBucket, CmdError> {
     let (from, to, label) = range_bounds(range, anchor_ms);
-    let sessions =
-        db.list_gym_sessions_in_range(from.timestamp_millis(), to.timestamp_millis())?;
+    let sessions = db.list_gym_sessions_in_range(from.timestamp_millis(), to.timestamp_millis())?;
     Ok(GymHistoryBucket {
         from_ms: from.timestamp_millis(),
         to_ms: to.timestamp_millis(),

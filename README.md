@@ -2,7 +2,7 @@
 
 A personal, **local-only** sport (run, bike and gym) tracker for Android. Zero account, cloud, or analytics.
 
-![](./image.png)
+<img src="image.png" alt="Description" width="200">
 
 <br>
 
