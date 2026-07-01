@@ -4,10 +4,10 @@ use chrono::{Datelike, Local, TimeZone};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, Emitter, Manager, State};
 
-use crate::db::{Db, SessionDetail, SessionRow};
+use crate::db::{Db, GymSessionRow, SessionDetail, SessionRow};
 use crate::location;
 use crate::metrics::{finalize, SessionTotals, TrackPoint};
-use crate::session::{ActiveSession, LiveMetrics, SessionState, SessionStore};
+use crate::session::{ActiveSession, ActivityKind, LiveMetrics, SessionState, SessionStore};
 
 fn now_ms() -> i64 {
     chrono::Utc::now().timestamp_millis()
@@ -43,6 +43,11 @@ pub fn live_points(store: State<SessionStore>) -> Option<Vec<TrackPoint>> {
 }
 
 #[tauri::command]
+pub fn active_activity(store: State<SessionStore>) -> Option<ActivityKind> {
+    store.active_activity()
+}
+
+#[tauri::command]
 pub fn installation_updated_at_ms() -> Option<i64> {
     #[cfg(target_os = "android")]
     {
@@ -63,16 +68,18 @@ pub fn start_session(
     app: AppHandle,
     db: State<Db>,
     store: State<SessionStore>,
+    activity: ActivityKind,
 ) -> Result<i64, CmdError> {
     let mut guard = store.inner.lock();
     if guard.is_some() {
         return Err(CmdError::State("a session is already active"));
     }
     let started_at_ms = now_ms();
-    let id = db.create_session(started_at_ms)?;
+    let id = db.create_session(started_at_ms, activity.as_str())?;
     *guard = Some(ActiveSession {
         id,
         started_at_ms,
+        activity,
         state: SessionState::Running,
         points: Vec::new(),
         pauses: Vec::new(),
@@ -164,8 +171,12 @@ pub fn stop_session(
 }
 
 #[tauri::command]
-pub fn list_recent(db: State<Db>, limit: u32) -> Result<Vec<SessionRow>, CmdError> {
-    Ok(db.list_recent(limit)?)
+pub fn list_recent(
+    db: State<Db>,
+    limit: u32,
+    activity: ActivityKind,
+) -> Result<Vec<SessionRow>, CmdError> {
+    Ok(db.list_recent(limit, activity.as_str())?)
 }
 
 #[derive(Debug, Clone, Copy, Deserialize)]
@@ -187,13 +198,21 @@ pub struct HistoryBucket {
     pub session_count: u32,
 }
 
-#[tauri::command]
-pub fn list_range(db: State<Db>, range: Range, anchor_ms: i64) -> Result<HistoryBucket, CmdError> {
+/// Compute the [from, to) bounds and display label for a week/month/year bucket
+/// anchored at `anchor_ms`. Shared by the running/biking and gym history commands.
+fn range_bounds(
+    range: Range,
+    anchor_ms: i64,
+) -> (
+    chrono::DateTime<Local>,
+    chrono::DateTime<Local>,
+    String,
+) {
     let anchor = Local
         .timestamp_millis_opt(anchor_ms)
         .single()
         .unwrap_or_else(Local::now);
-    let (from, to, label) = match range {
+    match range {
         Range::Week => {
             let weekday = anchor.weekday().num_days_from_monday() as i64;
             let monday = (anchor.date_naive() - chrono::Duration::days(weekday))
@@ -244,9 +263,23 @@ pub fn list_range(db: State<Db>, range: Range, anchor_ms: i64) -> Result<History
             let label = anchor.year().to_string();
             (from, to, label)
         }
-    };
+    }
+}
 
-    let sessions = db.list_sessions_in_range(from.timestamp_millis(), to.timestamp_millis())?;
+#[tauri::command]
+pub fn list_range(
+    db: State<Db>,
+    range: Range,
+    anchor_ms: i64,
+    activity: ActivityKind,
+) -> Result<HistoryBucket, CmdError> {
+    let (from, to, label) = range_bounds(range, anchor_ms);
+
+    let sessions = db.list_sessions_in_range(
+        from.timestamp_millis(),
+        to.timestamp_millis(),
+        activity.as_str(),
+    )?;
     let total_distance_m: f64 = sessions.iter().filter_map(|s| s.total_distance_m).sum();
     let total_moving_duration_ms: i64 = sessions.iter().filter_map(|s| s.moving_duration_ms).sum();
     Ok(HistoryBucket {
@@ -268,6 +301,54 @@ pub fn get_session(db: State<Db>, id: i64) -> Result<Option<SessionDetail>, CmdE
 #[tauri::command]
 pub fn delete_session(db: State<Db>, id: i64) -> Result<(), CmdError> {
     db.delete_session(id)?;
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+pub struct GymHistoryBucket {
+    pub from_ms: i64,
+    pub to_ms: i64,
+    pub label: String,
+    pub sessions: Vec<GymSessionRow>,
+    pub session_count: u32,
+}
+
+#[tauri::command]
+pub fn create_gym_session(db: State<Db>, exercises: Vec<String>) -> Result<i64, CmdError> {
+    Ok(db.create_gym_session(now_ms(), &exercises)?)
+}
+
+#[tauri::command]
+pub fn list_recent_gym(db: State<Db>, limit: u32) -> Result<Vec<GymSessionRow>, CmdError> {
+    Ok(db.list_recent_gym(limit)?)
+}
+
+#[tauri::command]
+pub fn list_gym_range(
+    db: State<Db>,
+    range: Range,
+    anchor_ms: i64,
+) -> Result<GymHistoryBucket, CmdError> {
+    let (from, to, label) = range_bounds(range, anchor_ms);
+    let sessions =
+        db.list_gym_sessions_in_range(from.timestamp_millis(), to.timestamp_millis())?;
+    Ok(GymHistoryBucket {
+        from_ms: from.timestamp_millis(),
+        to_ms: to.timestamp_millis(),
+        label,
+        session_count: sessions.len() as u32,
+        sessions,
+    })
+}
+
+#[tauri::command]
+pub fn get_gym_session(db: State<Db>, id: i64) -> Result<Option<GymSessionRow>, CmdError> {
+    Ok(db.get_gym_session(id)?)
+}
+
+#[tauri::command]
+pub fn delete_gym_session(db: State<Db>, id: i64) -> Result<(), CmdError> {
+    db.delete_gym_session(id)?;
     Ok(())
 }
 

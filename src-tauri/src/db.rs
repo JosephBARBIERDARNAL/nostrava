@@ -21,7 +21,23 @@ pub fn open(path: &Path) -> Result<Db, DbError> {
     }
     let conn = Connection::open(path)?;
     conn.execute_batch(SCHEMA_SQL)?;
+    migrate_activity_column(&conn)?;
     Ok(Db(Mutex::new(conn)))
+}
+
+/// Older databases predate the `activity` column. Add it, defaulting existing
+/// rows (all of which are runs) to "running".
+fn migrate_activity_column(conn: &Connection) -> Result<(), DbError> {
+    let has_activity: bool = conn
+        .prepare("SELECT 1 FROM pragma_table_info('sessions') WHERE name = 'activity'")?
+        .exists([])?;
+    if !has_activity {
+        conn.execute(
+            "ALTER TABLE sessions ADD COLUMN activity TEXT NOT NULL DEFAULT 'running'",
+            [],
+        )?;
+    }
+    Ok(())
 }
 
 const SCHEMA_SQL: &str = r#"
@@ -37,7 +53,8 @@ CREATE TABLE IF NOT EXISTS sessions (
     total_duration_ms     INTEGER,
     avg_pace_s_per_km     REAL,
     elevation_gain_m      REAL,
-    elevation_loss_m      REAL
+    elevation_loss_m      REAL,
+    activity              TEXT NOT NULL DEFAULT 'running'
 );
 
 CREATE TABLE IF NOT EXISTS track_points (
@@ -63,6 +80,17 @@ CREATE TABLE IF NOT EXISTS pause_intervals (
     paused_at_ms    INTEGER NOT NULL,
     resumed_at_ms   INTEGER
 );
+
+CREATE TABLE IF NOT EXISTS gym_sessions (
+    id            INTEGER PRIMARY KEY,
+    logged_at_ms  INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS gym_session_exercises (
+    session_id     INTEGER NOT NULL REFERENCES gym_sessions(id) ON DELETE CASCADE,
+    exercise_name  TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_gym_exercises_session ON gym_session_exercises(session_id);
 "#;
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -76,6 +104,7 @@ pub struct SessionRow {
     pub avg_pace_s_per_km: Option<f64>,
     pub elevation_gain_m: Option<f64>,
     pub elevation_loss_m: Option<f64>,
+    pub activity: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -86,12 +115,19 @@ pub struct SessionDetail {
     pub pauses: Vec<PauseInterval>,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct GymSessionRow {
+    pub id: i64,
+    pub logged_at_ms: i64,
+    pub exercises: Vec<String>,
+}
+
 impl Db {
-    pub fn create_session(&self, started_at_ms: i64) -> Result<i64, DbError> {
+    pub fn create_session(&self, started_at_ms: i64, activity: &str) -> Result<i64, DbError> {
         let conn = self.0.lock().unwrap();
         conn.execute(
-            "INSERT INTO sessions (started_at_ms) VALUES (?1)",
-            params![started_at_ms],
+            "INSERT INTO sessions (started_at_ms, activity) VALUES (?1, ?2)",
+            params![started_at_ms, activity],
         )?;
         Ok(conn.last_insert_rowid())
     }
@@ -197,34 +233,36 @@ impl Db {
         &self,
         from_ms: i64,
         to_ms: i64,
+        activity: &str,
     ) -> Result<Vec<SessionRow>, DbError> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT id, started_at_ms, ended_at_ms, total_distance_m, moving_duration_ms,
-                    total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m
+                    total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m, activity
              FROM sessions
              WHERE ended_at_ms IS NOT NULL
-               AND started_at_ms >= ?1 AND started_at_ms < ?2
+               AND activity = ?1
+               AND started_at_ms >= ?2 AND started_at_ms < ?3
              ORDER BY started_at_ms DESC",
         )?;
         let rows = stmt
-            .query_map(params![from_ms, to_ms], row_to_session)?
+            .query_map(params![activity, from_ms, to_ms], row_to_session)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
 
-    pub fn list_recent(&self, limit: u32) -> Result<Vec<SessionRow>, DbError> {
+    pub fn list_recent(&self, limit: u32, activity: &str) -> Result<Vec<SessionRow>, DbError> {
         let conn = self.0.lock().unwrap();
         let mut stmt = conn.prepare(
             "SELECT id, started_at_ms, ended_at_ms, total_distance_m, moving_duration_ms,
-                    total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m
+                    total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m, activity
              FROM sessions
-             WHERE ended_at_ms IS NOT NULL
+             WHERE ended_at_ms IS NOT NULL AND activity = ?1
              ORDER BY started_at_ms DESC
-             LIMIT ?1",
+             LIMIT ?2",
         )?;
         let rows = stmt
-            .query_map(params![limit], row_to_session)?
+            .query_map(params![activity, limit], row_to_session)?
             .collect::<Result<Vec<_>, _>>()?;
         Ok(rows)
     }
@@ -234,7 +272,7 @@ impl Db {
         let Some(session) = conn
             .query_row(
                 "SELECT id, started_at_ms, ended_at_ms, total_distance_m, moving_duration_ms,
-                        total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m
+                        total_duration_ms, avg_pace_s_per_km, elevation_gain_m, elevation_loss_m, activity
                  FROM sessions WHERE id = ?1",
                 params![id],
                 row_to_session,
@@ -308,5 +346,108 @@ fn row_to_session(r: &rusqlite::Row) -> rusqlite::Result<SessionRow> {
         avg_pace_s_per_km: r.get(6)?,
         elevation_gain_m: r.get(7)?,
         elevation_loss_m: r.get(8)?,
+        activity: r.get(9)?,
     })
+}
+
+impl Db {
+    pub fn create_gym_session(
+        &self,
+        logged_at_ms: i64,
+        exercises: &[String],
+    ) -> Result<i64, DbError> {
+        let mut conn = self.0.lock().unwrap();
+        let tx = conn.transaction()?;
+        tx.execute(
+            "INSERT INTO gym_sessions (logged_at_ms) VALUES (?1)",
+            params![logged_at_ms],
+        )?;
+        let id = tx.last_insert_rowid();
+        {
+            let mut stmt = tx.prepare(
+                "INSERT INTO gym_session_exercises (session_id, exercise_name) VALUES (?1, ?2)",
+            )?;
+            for name in exercises {
+                stmt.execute(params![id, name])?;
+            }
+        }
+        tx.commit()?;
+        Ok(id)
+    }
+
+    pub fn list_recent_gym(&self, limit: u32) -> Result<Vec<GymSessionRow>, DbError> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, logged_at_ms FROM gym_sessions ORDER BY logged_at_ms DESC LIMIT ?1",
+        )?;
+        let sessions = stmt
+            .query_map(params![limit], row_to_gym_session)?
+            .collect::<Result<Vec<_>, _>>()?;
+        sessions
+            .into_iter()
+            .map(|s| attach_gym_exercises(&conn, s))
+            .collect()
+    }
+
+    pub fn list_gym_sessions_in_range(
+        &self,
+        from_ms: i64,
+        to_ms: i64,
+    ) -> Result<Vec<GymSessionRow>, DbError> {
+        let conn = self.0.lock().unwrap();
+        let mut stmt = conn.prepare(
+            "SELECT id, logged_at_ms FROM gym_sessions
+             WHERE logged_at_ms >= ?1 AND logged_at_ms < ?2
+             ORDER BY logged_at_ms DESC",
+        )?;
+        let sessions = stmt
+            .query_map(params![from_ms, to_ms], row_to_gym_session)?
+            .collect::<Result<Vec<_>, _>>()?;
+        sessions
+            .into_iter()
+            .map(|s| attach_gym_exercises(&conn, s))
+            .collect()
+    }
+
+    pub fn get_gym_session(&self, id: i64) -> Result<Option<GymSessionRow>, DbError> {
+        let conn = self.0.lock().unwrap();
+        let Some(session) = conn
+            .query_row(
+                "SELECT id, logged_at_ms FROM gym_sessions WHERE id = ?1",
+                params![id],
+                row_to_gym_session,
+            )
+            .optional()?
+        else {
+            return Ok(None);
+        };
+        Ok(Some(attach_gym_exercises(&conn, session)?))
+    }
+
+    pub fn delete_gym_session(&self, id: i64) -> Result<(), DbError> {
+        let conn = self.0.lock().unwrap();
+        conn.execute("DELETE FROM gym_sessions WHERE id = ?1", params![id])?;
+        Ok(())
+    }
+}
+
+fn row_to_gym_session(r: &rusqlite::Row) -> rusqlite::Result<GymSessionRow> {
+    Ok(GymSessionRow {
+        id: r.get(0)?,
+        logged_at_ms: r.get(1)?,
+        exercises: Vec::new(),
+    })
+}
+
+fn attach_gym_exercises(
+    conn: &Connection,
+    mut session: GymSessionRow,
+) -> Result<GymSessionRow, DbError> {
+    let mut stmt = conn.prepare(
+        "SELECT exercise_name FROM gym_session_exercises WHERE session_id = ?1 ORDER BY rowid",
+    )?;
+    session.exercises = stmt
+        .query_map(params![session.id], |r| r.get(0))?
+        .collect::<Result<Vec<_>, _>>()?;
+    Ok(session)
 }

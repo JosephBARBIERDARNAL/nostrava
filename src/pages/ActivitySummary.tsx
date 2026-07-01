@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Trash2 } from "lucide-react";
-import { api, type SessionDetail } from "@/lib/api";
+import { api, type ActivityKind, type SessionDetail } from "@/lib/api";
+import { ACTIVITY_CONFIG } from "@/lib/activities";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ElevationChart } from "@/components/ElevationChart";
@@ -12,10 +13,13 @@ import {
   formatDistance,
   formatDuration,
   formatPace,
+  formatSpeed,
 } from "@/lib/format";
 
-export function Summary() {
-  const { id } = useParams();
+export function ActivitySummary() {
+  const { activity, id } = useParams<{ activity: string; id: string }>();
+  const kind = activity as ActivityKind;
+  const config = ACTIVITY_CONFIG[kind];
   const nav = useNavigate();
   const [detail, setDetail] = useState<SessionDetail | null>(null);
 
@@ -26,9 +30,9 @@ export function Summary() {
 
   async function onDelete() {
     if (!detail) return;
-    if (!confirm("Delete this run?")) return;
+    if (!confirm(`Delete this ${config.noun}?`)) return;
     await api.deleteSession(detail.session.id);
-    nav("/", { replace: true });
+    nav(`/${kind}`, { replace: true });
   }
 
   if (!detail) {
@@ -36,12 +40,14 @@ export function Summary() {
   }
 
   const s = detail.session;
+  const metricLabel = config.metric === "pace" ? "Avg pace" : "Avg speed";
+  const formatMetric = config.metric === "pace" ? formatPace : formatSpeed;
 
   return (
     <>
       <header className="flex items-center justify-between mb-5">
         <Link
-          to="/"
+          to={`/${kind}`}
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Home
@@ -49,7 +55,7 @@ export function Summary() {
         <button
           onClick={onDelete}
           className="text-muted-foreground hover:text-destructive mt-4"
-          aria-label="Delete run"
+          aria-label="Delete"
         >
           <Trash2 className="h-5 w-5" />
         </button>
@@ -70,7 +76,7 @@ export function Summary() {
       </Card>
 
       <div className="grid grid-cols-2 gap-3 mb-5">
-        <Stat label="Avg pace" value={formatPace(s.avg_pace_s_per_km)} />
+        <Stat label={metricLabel} value={formatMetric(s.avg_pace_s_per_km)} />
         <Stat
           label="Moving time"
           value={formatDuration(s.moving_duration_ms ?? 0)}
@@ -98,7 +104,7 @@ export function Summary() {
       </Card>
 
       <div className="mt-6">
-        <Button onClick={() => nav("/")} className="w-full" variant="outline">
+        <Button onClick={() => nav(`/${kind}`)} className="w-full" variant="outline">
           Done
         </Button>
       </div>

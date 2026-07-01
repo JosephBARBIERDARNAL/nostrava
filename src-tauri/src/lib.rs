@@ -50,6 +50,7 @@ pub fn run() {
             commands::installation_updated_at_ms,
             commands::live_metrics,
             commands::live_points,
+            commands::active_activity,
             commands::start_session,
             commands::pause_session,
             commands::resume_session,
@@ -59,6 +60,11 @@ pub fn run() {
             commands::get_session,
             commands::delete_session,
             commands::dev_push_point,
+            commands::create_gym_session,
+            commands::list_recent_gym,
+            commands::list_gym_range,
+            commands::get_gym_session,
+            commands::delete_gym_session,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

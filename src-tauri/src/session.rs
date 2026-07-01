@@ -17,10 +17,27 @@ pub enum SessionState {
     Paused,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, serde::Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum ActivityKind {
+    Running,
+    Biking,
+}
+
+impl ActivityKind {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            ActivityKind::Running => "running",
+            ActivityKind::Biking => "biking",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ActiveSession {
     pub id: i64,
     pub started_at_ms: i64,
+    pub activity: ActivityKind,
     pub state: SessionState,
     pub points: Vec<TrackPoint>,
     pub pauses: Vec<PauseInterval>,
@@ -58,6 +75,10 @@ impl SessionStore {
             .lock()
             .as_ref()
             .map_or(SessionState::Idle, |s| s.state)
+    }
+
+    pub fn active_activity(&self) -> Option<ActivityKind> {
+        self.inner.lock().as_ref().map(|s| s.activity)
     }
 
     /// Compute live metrics for the running session, or None if idle.
@@ -104,20 +125,6 @@ impl SessionStore {
             s.unflushed_from = s.points.len();
             // Best-effort persist; failure shouldn't lose in-memory state.
             let _ = db.append_points(s.id, &new_pts);
-        }
-    }
-
-    /// Persist any active-session points that have not yet been flushed.
-    pub fn flush_remaining(&self, db: &Db) {
-        let mut guard = self.inner.lock();
-        let Some(s) = guard.as_mut() else { return };
-        if s.unflushed_from >= s.points.len() {
-            return;
-        }
-
-        let new_pts: Vec<TrackPoint> = s.points[s.unflushed_from..].to_vec();
-        if db.append_points(s.id, &new_pts).is_ok() {
-            s.unflushed_from = s.points.len();
         }
     }
 }

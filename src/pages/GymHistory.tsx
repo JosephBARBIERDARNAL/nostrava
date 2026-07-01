@@ -1,23 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { ArrowLeft, ChevronLeft, ChevronRight } from "lucide-react";
-import { api, type HistoryBucket, type Range } from "@/lib/api";
+import { api, type GymHistoryBucket, type Range } from "@/lib/api";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  formatDate,
-  formatDistance,
-  formatDuration,
-  formatPace,
-} from "@/lib/format";
+import { formatDate } from "@/lib/format";
 
-export function History() {
+export function GymHistory() {
   const [range, setRange] = useState<Range>("week");
   const [anchorMs, setAnchorMs] = useState<number>(Date.now());
-  const [bucket, setBucket] = useState<HistoryBucket | null>(null);
+  const [bucket, setBucket] = useState<GymHistoryBucket | null>(null);
 
   useEffect(() => {
-    api.listRange(range, anchorMs).then(setBucket).catch(console.error);
+    api.listGymRange(range, anchorMs).then(setBucket).catch(console.error);
   }, [range, anchorMs]);
 
   function shift(forward: boolean) {
@@ -40,7 +35,7 @@ export function History() {
     <>
       <header className="flex items-center justify-between mb-5">
         <Link
-          to="/"
+          to="/gym"
           className="inline-flex items-center text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-4 w-4 mr-1" /> Home
@@ -80,43 +75,34 @@ export function History() {
       </div>
 
       {bucket && (
-        <div className="grid grid-cols-3 gap-2 mb-5">
-          <Stat
-            label="Distance"
-            value={formatDistance(bucket.total_distance_m)}
-          />
-          <Stat
-            label="Time"
-            value={formatDuration(bucket.total_moving_duration_ms)}
-          />
-          <Stat label="Runs" value={bucket.session_count.toString()} />
+        <div className="mb-5">
+          <Stat label="Workouts" value={bucket.session_count.toString()} />
         </div>
       )}
 
       {bucket && bucket.sessions.length === 0 ? (
         <Card className="p-6 text-center text-sm text-muted-foreground">
-          No runs in this {range}.
+          No workouts in this {range}.
         </Card>
       ) : (
         <ul className="space-y-2">
           {bucket?.sessions.map((s) => (
             <li key={s.id}>
               <Link
-                to={`/summary/${s.id}`}
+                to={`/gym/summary/${s.id}`}
                 className="block rounded-xl border border-border bg-card px-4 py-3 hover:border-muted transition-colors"
               >
                 <div className="flex items-baseline justify-between">
                   <span className="font-medium">
-                    {formatDate(s.started_at_ms)}
+                    {formatDate(s.logged_at_ms)}
                   </span>
-                  <span className="font-display text-lg tabular-nums">
-                    {formatDistance(s.total_distance_m)}
+                  <span className="text-sm text-muted-foreground">
+                    {s.exercises.length} exercise{s.exercises.length === 1 ? "" : "s"}
                   </span>
                 </div>
-                <div className="flex justify-between text-sm text-muted-foreground tabular-nums">
-                  <span>{formatDuration(s.moving_duration_ms ?? 0)}</span>
-                  <span>{formatPace(s.avg_pace_s_per_km)}</span>
-                </div>
+                <p className="text-sm text-muted-foreground truncate">
+                  {s.exercises.join(", ")}
+                </p>
               </Link>
             </li>
           ))}

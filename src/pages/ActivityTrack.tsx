@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { Pause, Play, Square } from "lucide-react";
-import { api, onMetrics, type LiveMetrics, type TrackPoint } from "@/lib/api";
+import {
+  api,
+  onMetrics,
+  type ActivityKind,
+  type LiveMetrics,
+  type TrackPoint,
+} from "@/lib/api";
+import { ACTIVITY_CONFIG } from "@/lib/activities";
 import { Button } from "@/components/ui/button";
 import { RouteMap } from "@/components/RouteMap";
-import { formatDistance, formatDuration, formatPace } from "@/lib/format";
+import { formatDistance, formatDuration, formatPace, formatSpeed } from "@/lib/format";
 
-export function Track() {
+export function ActivityTrack() {
+  const { activity } = useParams<{ activity: string }>();
+  const kind = activity as ActivityKind;
+  const config = ACTIVITY_CONFIG[kind];
   const nav = useNavigate();
   const [metrics, setMetrics] = useState<LiveMetrics | null>(null);
   const [points, setPoints] = useState<TrackPoint[]>([]);
@@ -33,9 +43,9 @@ export function Track() {
   // If somehow we land here without an active session, send the user home.
   useEffect(() => {
     api.currentState().then((s) => {
-      if (s === "idle") nav("/", { replace: true });
+      if (s === "idle") nav(`/${kind}`, { replace: true });
     });
-  }, [nav]);
+  }, [nav, kind]);
 
   async function onPause() {
     if (busy) return;
@@ -68,7 +78,7 @@ export function Track() {
     setBusy(true);
     try {
       const detail = await api.stopSession();
-      nav(`/summary/${detail.session.id}`, { replace: true });
+      nav(`/${kind}/summary/${detail.session.id}`, { replace: true });
     } catch (e) {
       console.error(e);
       setBusy(false);
@@ -76,12 +86,14 @@ export function Track() {
   }
 
   const isPaused = metrics?.state === "paused";
+  const metricLabel = config.metric === "pace" ? "Pace" : "Speed";
+  const formatMetric = config.metric === "pace" ? formatPace : formatSpeed;
 
   return (
     <div className="flex-1 flex flex-col">
       <header className="text-center mb-10">
         <p className="text-xs uppercase tracking-widest text-muted-foreground">
-          {isPaused ? "Paused" : "Running"}
+          {isPaused ? "Paused" : config.trackingLabel}
         </p>
       </header>
 
@@ -106,7 +118,7 @@ export function Track() {
             label="Distance"
             value={formatDistance(metrics?.total_distance_m)}
           />
-          <Stat label="Pace" value={formatPace(metrics?.avg_pace_s_per_km)} />
+          <Stat label={metricLabel} value={formatMetric(metrics?.avg_pace_s_per_km)} />
         </div>
 
         <div className="w-full rounded-xl border border-border bg-card p-2">
