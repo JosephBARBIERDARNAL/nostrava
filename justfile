@@ -4,56 +4,34 @@ set shell := ["bash", "-cu"]
 default:
     @just --list
 
-# Desktop dev — opens a 420×820 window with hot-reloading UI.
-# Use this for fast iteration on screens; GPS is faked via the dev-push-point
-
-# command (or you can just script it in the browser console).
-dev:
-    npm run tauri:dev
-
-# Frontend-only typecheck + build (no Rust).
-build-web:
-    npm run build
-
 # Run the pure-Rust unit tests (metrics math etc).
 test:
-    cd src-tauri && cargo test --lib
+    cd rust && cargo test --lib
 
-# One-time: scaffold the gen/android/ Gradle project.
+# Build a debug APK (compiles the Rust cdylib for arm64-v8a + armeabi-v7a, then Kotlin/Compose).
+build:
+    cd android && ./gradlew assembleDebug
 
-# Requires ANDROID_HOME + NDK_HOME exported (and the SDK + NDK installed).
-android-init:
-    npm run tauri -- android init
-    @echo
-    @echo "→ Now merge files from ./android/ into src-tauri/gen/android/."
-    @echo "  See android/README.md for the steps."
-
-# Live-reload on a phone connected via USB (USB debugging on, RSA prompt accepted).
-android-dev:
-    npm run tauri -- android dev
-
-# Build a release APK. Configure release signing before installing this one.
-android-apk:
-    npm run tauri -- android build --apk
-
-# Build a debug-signed APK for sideloading on a modern Android phone.
-android-debug-apk:
-    npm run tauri -- android build --debug --apk --target aarch64
-
-# Build + install on the currently-connected device via adb.
+# Build + install the debug APK on the currently-connected device via adb.
 install:
-    just android-debug-apk
-    @APK="src-tauri/gen/android/app/build/outputs/apk/universal/debug/app-universal-debug.apk"; \
-     ADB="${ADB:-${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}/platform-tools/adb}"; \
+    cd android && ./gradlew installDebug
+
+# Build a release APK. Configure release signing in android/app/build.gradle.kts first.
+release:
+    cd android && ./gradlew assembleRelease
+
+# Tail this app's logcat output — there's no Tauri dev console anymore, so this
+# (plus `log::info!`/`log::error!` in Rust via android_logger) is how you see
+
+# what's happening on-device.
+logcat:
+    ADB="${ADB:-${ANDROID_HOME:-/opt/homebrew/share/android-commandlinetools}/platform-tools/adb}"; \
      if [ ! -x "$ADB" ]; then ADB="$(command -v adb || true)"; fi; \
-     if [ ! -f "$APK" ]; then echo "APK not found: $APK"; exit 1; fi; \
-     if [ -z "$ADB" ]; then echo "adb not found. Add Android platform-tools to PATH or set ADB=/path/to/adb."; exit 1; fi; \
-     echo "Installing $APK …"; \
-     "$ADB" install -r "$APK"
+     "$ADB" logcat | grep -i didit
 
 # Generate a self-signed release keystore at ~/.didit/release.keystore.
 
-# Run once, then point tauri.conf.json's `android.signingConfig` at it.
+# Run once, then point android/app/build.gradle.kts's `signingConfig` at it.
 keystore:
     @mkdir -p ~/.didit
     @if [ -f ~/.didit/release.keystore ]; then \

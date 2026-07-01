@@ -1,18 +1,15 @@
-node_modules
-dist
-dist-ssr
-*.local
+rust/target
 
-src-tauri/target
-src-tauri/gen/schemas
-src-tauri/gen/android/.gradle
-src-tauri/gen/android/build
-src-tauri/gen/android/app/build
-src-tauri/gen/android/.idea
-src-tauri/gen/android/local.properties
+android/.gradle
+android/build
+android/app/build
+android/buildSrc/build
+android/buildSrc/.gradle
+android/.idea
+android/local.properties
+android/app/src/main/jniLibs
 
 .DS_Store
 .vscode/*
 !.vscode/extensions.json
 .idea
-
