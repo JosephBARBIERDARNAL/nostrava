@@ -127,4 +127,17 @@ impl SessionStore {
             let _ = db.append_points(s.id, &new_pts);
         }
     }
+
+    /// Flush any points buffered since the last periodic flush. Used when the
+    /// foreground service is stopped before reaching the next ~10-point batch.
+    pub fn flush_remaining(&self, db: &Db) {
+        let mut guard = self.inner.lock();
+        let Some(s) = guard.as_mut() else { return };
+        if s.unflushed_from >= s.points.len() {
+            return;
+        }
+        let new_pts: Vec<TrackPoint> = s.points[s.unflushed_from..].to_vec();
+        s.unflushed_from = s.points.len();
+        let _ = db.append_points(s.id, &new_pts);
+    }
 }

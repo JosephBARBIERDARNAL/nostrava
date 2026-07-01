@@ -6,7 +6,8 @@
       "WebFetch(domain:slint.dev)",
       "WebSearch",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:releases.slint.dev)"
+      "WebFetch(domain:releases.slint.dev)",
+      "Bash(npm install *)"
     ]
   }
 }

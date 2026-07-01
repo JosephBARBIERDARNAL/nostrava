@@ -1,8 +1,6 @@
 # didit
 
-A personal, **local-only** running tracker for Android. Strava-style features
-(timer, pause, distance, pace, splits, history) without any account, cloud, or
-analytics.
+A personal, **local-only** sport (run, bike and gym) tracker for Android. Zero account, cloud, or analytics.
 
 <br>
 
