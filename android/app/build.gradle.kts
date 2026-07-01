@@ -9,6 +9,7 @@ plugins {
 android {
     compileSdk = 36
     ndkVersion = "27.3.13750724"
+    ndkPath = System.getenv("NDK_HOME")
     namespace = "com.didit.app"
     defaultConfig {
         applicationId = "com.didit.app"
