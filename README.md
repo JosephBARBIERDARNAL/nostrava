@@ -1,4 +1,4 @@
-# Nostrava
+# didit
 
 A personal, **local-only** running tracker for Android. Strava-style features
 (timer, pause, distance, pace, splits, history) without any account, cloud, or

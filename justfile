@@ -51,16 +51,16 @@ install:
      echo "Installing $APK …"; \
      "$ADB" install -r "$APK"
 
-# Generate a self-signed release keystore at ~/.nostrava/release.keystore.
+# Generate a self-signed release keystore at ~/.didit/release.keystore.
 
 # Run once, then point tauri.conf.json's `android.signingConfig` at it.
 keystore:
-    @mkdir -p ~/.nostrava
-    @if [ -f ~/.nostrava/release.keystore ]; then \
-        echo "Keystore already exists at ~/.nostrava/release.keystore"; \
+    @mkdir -p ~/.didit
+    @if [ -f ~/.didit/release.keystore ]; then \
+        echo "Keystore already exists at ~/.didit/release.keystore"; \
     else \
         keytool -genkey -v \
-          -keystore ~/.nostrava/release.keystore \
-          -alias nostrava -keyalg RSA -keysize 4096 -validity 10950 \
+          -keystore ~/.didit/release.keystore \
+          -alias didit -keyalg RSA -keysize 4096 -validity 10950 \
           -storetype PKCS12; \
     fi

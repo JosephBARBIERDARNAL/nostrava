@@ -10,11 +10,11 @@ Tauri generates `src-tauri/gen/android/` with a Gradle project + a default
 `MainActivity.kt` + `AndroidManifest.xml`. Merge the following:
 
 1. **Copy Kotlin sources** into the generated source tree (package
-   `com.nostrava.app`):
+   `com.didit.app`):
 
    ```
    cp android/kotlin/*.kt \
-      src-tauri/gen/android/app/src/main/java/com/nostrava/app/
+      src-tauri/gen/android/app/src/main/java/com/didit/app/
    ```
 
 2. **Merge `AndroidManifest.xml`**: add the `<uses-permission>` lines and the

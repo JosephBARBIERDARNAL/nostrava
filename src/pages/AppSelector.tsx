@@ -8,7 +8,7 @@ export function AppSelector() {
   return (
     <>
       <header className="mb-10">
-        <h1 className="font-display text-4xl tracking-tight">Nostrava</h1>
+        <h1 className="font-display text-4xl tracking-tight">didit</h1>
       </header>
 
       <div className="flex-1 flex flex-col justify-center gap-4">

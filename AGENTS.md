@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 
-Nostrava is a local-only running tracker built with Tauri 2, React, and Rust. The React/Vite frontend lives in `src/`: pages are in `src/pages`, reusable UI is in `src/components`, helpers are in `src/lib`, and global styles are in `src/styles/globals.css`. The Rust core lives in `src-tauri/src`, with metrics, database, session, command, location, and JNI modules split by responsibility. Android Kotlin and manifest snippets are kept in `android/` and merged into `src-tauri/gen/android/` after scaffolding.
+didit is a local-only running tracker built with Tauri 2, React, and Rust. The React/Vite frontend lives in `src/`: pages are in `src/pages`, reusable UI is in `src/components`, helpers are in `src/lib`, and global styles are in `src/styles/globals.css`. The Rust core lives in `src-tauri/src`, with metrics, database, session, command, location, and JNI modules split by responsibility. Android Kotlin and manifest snippets are kept in `android/` and merged into `src-tauri/gen/android/` after scaffolding.
 
 ## Build, Test, and Development Commands
 

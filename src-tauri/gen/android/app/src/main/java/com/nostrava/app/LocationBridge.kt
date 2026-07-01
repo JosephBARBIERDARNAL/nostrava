@@ -1,4 +1,4 @@
-package com.nostrava.app
+package com.didit.app
 
 import android.content.Context
 import android.content.Intent
@@ -9,7 +9,7 @@ import android.os.Build
  * JNI to control the foreground service; the service calls [onLocation] /
  * [onServiceStopped] back into Rust whenever new data is available.
  *
- * `init { System.loadLibrary("nostrava_lib") }` is what pulls the Rust
+ * `init { System.loadLibrary("didit_lib") }` is what pulls the Rust
  * cdylib into the JVM. The symbol names must match the `Java_…` exports
  * declared in `src-tauri/src/jni_bridge.rs`.
  */
@@ -19,7 +19,7 @@ object LocationBridge {
     private var appContext: Context? = null
 
     init {
-        System.loadLibrary("nostrava_lib")
+        System.loadLibrary("didit_lib")
     }
 
     /** Call once from MainActivity.onCreate so Rust can cache the JavaVM. */

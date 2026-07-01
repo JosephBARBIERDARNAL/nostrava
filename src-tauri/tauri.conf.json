@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Nostrava",
+  "productName": "didit",
   "version": "0.1.0",
-  "identifier": "com.nostrava.app",
+  "identifier": "com.didit.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "withGlobalTauri": false,
     "windows": [
       {
-        "title": "Nostrava",
+        "title": "didit",
         "width": 420,
         "height": 820,
         "resizable": true,

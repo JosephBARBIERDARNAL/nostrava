@@ -1,5 +1,5 @@
 [package]
-name = "nostrava"
+name = "didit"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.77"
@@ -7,7 +7,7 @@ description = "Personal local-only running tracker"
 
 [lib]
 crate-type = ["cdylib", "rlib", "staticlib"]
-name = "nostrava_lib"
+name = "didit_lib"
 
 [dependencies]
 chrono = { version = "0.4", features = ["serde"] }

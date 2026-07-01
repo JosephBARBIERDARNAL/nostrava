@@ -29,7 +29,7 @@ pub fn store_jvm(env: &JNIEnv) {
     }
 }
 
-const BRIDGE_CLASS: &str = "com/nostrava/app/LocationBridge";
+const BRIDGE_CLASS: &str = "com/didit/app/LocationBridge";
 
 /// Call a no-arg static `void` method on `LocationBridge` (e.g. startService).
 pub fn call_bridge_static_void(_app: &AppHandle, name: &str) -> Result<(), String> {
@@ -58,17 +58,14 @@ pub fn installation_updated_at_ms() -> Result<Option<i64>, String> {
 
 /// Called once during app init from Kotlin so we can cache the JavaVM.
 #[no_mangle]
-pub extern "system" fn Java_com_nostrava_app_LocationBridge_nativeInit(
-    env: JNIEnv,
-    _class: JClass,
-) {
+pub extern "system" fn Java_com_didit_app_LocationBridge_nativeInit(env: JNIEnv, _class: JClass) {
     store_jvm(&env);
     log::info!("JNI: nativeInit — JVM cached");
 }
 
 /// Called by the foreground service for each GPS sample.
 #[no_mangle]
-pub extern "system" fn Java_com_nostrava_app_LocationBridge_onLocation(
+pub extern "system" fn Java_com_didit_app_LocationBridge_onLocation(
     _env: JNIEnv,
     _class: JClass,
     lat: jdouble,
@@ -98,7 +95,7 @@ pub extern "system" fn Java_com_nostrava_app_LocationBridge_onLocation(
 
 /// Called when the Kotlin service stops (user OS-killed it, etc).
 #[no_mangle]
-pub extern "system" fn Java_com_nostrava_app_LocationBridge_onServiceStopped(
+pub extern "system" fn Java_com_didit_app_LocationBridge_onServiceStopped(
     _env: JNIEnv,
     _class: JClass,
 ) {

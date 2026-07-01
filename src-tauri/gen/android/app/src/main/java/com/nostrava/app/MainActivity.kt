@@ -1,4 +1,4 @@
-package com.nostrava.app
+package com.didit.app
 
 import android.Manifest
 import android.content.pm.PackageManager

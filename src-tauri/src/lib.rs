@@ -1,4 +1,4 @@
-//! Nostrava Rust core — Tauri builder, state, commands, and the live-metrics
+//! didit Rust core — Tauri builder, state, commands, and the live-metrics
 //! ticker thread.
 
 mod commands;
@@ -27,7 +27,7 @@ pub fn run() {
                 .app_local_data_dir()
                 .expect("app local data dir resolvable");
             std::fs::create_dir_all(&data_dir).ok();
-            let db_path = data_dir.join("nostrava.db");
+            let db_path = data_dir.join("didit.db");
             let db = db::open(&db_path).expect("open sqlite");
             app.manage(db);
 

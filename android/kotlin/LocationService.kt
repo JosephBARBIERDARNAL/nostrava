@@ -1,4 +1,4 @@
-package com.nostrava.app
+package com.didit.app
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -26,7 +26,7 @@ import com.google.android.gms.location.Priority
  */
 class LocationService : Service() {
     companion object {
-        private const val CHANNEL_ID = "nostrava_tracking"
+        private const val CHANNEL_ID = "didit_tracking"
         private const val NOTIF_ID = 4242
         private const val LOCATION_INTERVAL_MS = 1_000L
     }
@@ -118,7 +118,7 @@ class LocationService : Service() {
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle("Recording your run")
-            .setContentText("Nostrava is tracking your location.")
+            .setContentText("didit is tracking your location.")
             .setOngoing(true)
             .setSilent(true)
             .setContentIntent(pi)
