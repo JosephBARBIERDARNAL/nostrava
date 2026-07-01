@@ -53,7 +53,7 @@ export function ActivityHome() {
 
   return (
     <>
-      <header className="mb-8 flex items-start justify-between">
+      <header className="mb-8 flex items-start justify-between mt-4">
         <div>
           <h1 className="font-display text-4xl tracking-tight">
             {config.title}

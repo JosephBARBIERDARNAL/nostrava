@@ -7,7 +7,7 @@ export function AppSelector() {
 
   return (
     <>
-      <header className="mb-10">
+      <header className="mb-10 mt-4">
         <h1 className="font-display text-4xl tracking-tight">didit</h1>
       </header>
 
